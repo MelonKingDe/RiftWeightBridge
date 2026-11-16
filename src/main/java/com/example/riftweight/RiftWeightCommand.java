@@ -38,6 +38,7 @@ public final class RiftWeightCommand {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
 				dispatcher.register(ClientCommands.literal("riftweight")
 						.executes(ctx -> run(ctx.getSource(), Minecraft.getInstance().getUser().getName(), null))
+						.then(ClientCommands.literal("debug").executes(ctx -> debug(ctx.getSource())))
 						.then(ClientCommands.argument("player", StringArgumentType.word())
 								.executes(ctx -> run(ctx.getSource(),
 										StringArgumentType.getString(ctx, "player"), null))
@@ -45,6 +46,24 @@ public final class RiftWeightCommand {
 										.executes(ctx -> run(ctx.getSource(),
 												StringArgumentType.getString(ctx, "player"),
 												StringArgumentType.getString(ctx, "profile")))))));
+	}
+
+	/** /riftweight debug: 1st call starts recording, 2nd call prints what the tab list hook saw. */
+	private static int debug(FabricClientCommandSource source) {
+		if (!Debug.enabled) {
+			Debug.clear();
+			Debug.enabled = true;
+			source.sendFeedback(lit("Debug recording started. Hold TAB for a few seconds, then run /riftweight debug again.",
+					ChatFormatting.GRAY));
+			return 1;
+		}
+		Debug.enabled = false;
+		source.sendFeedback(lit("tab hook calls: " + Debug.hookCalls + ", tablist=" + ModConfig.tablist
+				+ ", position=" + ModConfig.tabPosition, ChatFormatting.YELLOW));
+		for (String line : Debug.dump()) {
+			source.sendFeedback(lit(line, ChatFormatting.GRAY));
+		}
+		return 1;
 	}
 
 	private static int run(FabricClientCommandSource source, String player, String profile) {

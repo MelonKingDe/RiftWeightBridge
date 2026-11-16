@@ -1,5 +1,7 @@
 package com.example.riftweight;
 
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -16,22 +18,30 @@ public final class ComponentUtil {
 	/** Leading SkyBlock level such as "[481] ". */
 	private static final Pattern LEVEL = Pattern.compile("^\\s*\\[\\d+\\]\\s*");
 
-	/** "[481] Name ..." (optional rank brackets like "[MVP+]" in between) -> captures the name. */
-	private static final Pattern LEVEL_AND_NAME =
-			Pattern.compile("^\\s*\\[\\d+\\]\\s*(?:\\[[^\\]]*\\]\\s*)*([A-Za-z0-9_]{3,16})(?![A-Za-z0-9_])");
+	/** A word that can be a Minecraft name (3-16 chars), not part of a longer word. */
+	private static final Pattern NAME_TOKEN = Pattern.compile("(?<![A-Za-z0-9_])[A-Za-z0-9_]{3,16}(?![A-Za-z0-9_])");
 
 	private record Segment(Style style, String text) {}
 
 	private ComponentUtil() {}
 
 	/**
-	 * For SkyBlock-style entries "[481] MelonKingDe ..." returns the player name after the level,
-	 * otherwise null. (On Hypixel SkyBlock the tab list shows fake entries with a different UUID,
-	 * so the real player has to be found by name.)
+	 * Finds the real online player an entry belongs to: the first word (of the first few) in the text that
+	 * is the name of a player on the tab list. Needed because on Hypixel SkyBlock the visible tab entries
+	 * are fake entries with a different UUID. Returns null for headers, offline entries etc.
 	 */
-	public static String nameAfterLevel(Component component) {
-		Matcher m = LEVEL_AND_NAME.matcher(component.getString());
-		return m.find() ? m.group(1) : null;
+	public static PlayerInfo findOnlinePlayer(Component component, ClientPacketListener connection) {
+		Matcher m = NAME_TOKEN.matcher(component.getString());
+		for (int tries = 0; tries < 4 && m.find(); tries++) {
+			PlayerInfo info = connection.getPlayerInfo(m.group());
+			if (info != null) return info;
+		}
+		return null;
+	}
+
+	/** Puts {@code insertion} in front of the whole component. */
+	public static Component insertAtStart(Component original, Component insertion) {
+		return Component.empty().append(insertion).append(original);
 	}
 
 	/**

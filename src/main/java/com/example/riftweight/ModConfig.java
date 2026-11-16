@@ -19,6 +19,7 @@ import java.nio.file.Path;
  *   chat     - show the tag in chat messages
  *   tablist  - show a small symbol in the tab list for players who are in the database
  *   tabIcon  - the symbol used in the tab list
+ *   tabPosition - "start" (far left, before the level) or "afterLevel" (between level and name)
  */
 public final class ModConfig {
 
@@ -28,6 +29,7 @@ public final class ModConfig {
 	public static boolean chat = true;
 	public static boolean tablist = true;
 	public static String tabIcon = "\u0444";
+	public static String tabPosition = "start";
 
 	private ModConfig() {}
 
@@ -42,6 +44,7 @@ public final class ModConfig {
 				if (o.has("chat")) chat = o.get("chat").getAsBoolean();
 				if (o.has("tablist")) tablist = o.get("tablist").getAsBoolean();
 				if (o.has("tabIcon")) tabIcon = o.get("tabIcon").getAsString();
+				if (o.has("tabPosition")) tabPosition = o.get("tabPosition").getAsString();
 			}
 			// Write back so missing keys are added and the user can see all options
 			JsonObject out = new JsonObject();
@@ -51,6 +54,7 @@ public final class ModConfig {
 			out.addProperty("chat", chat);
 			out.addProperty("tablist", tablist);
 			out.addProperty("tabIcon", tabIcon);
+			out.addProperty("tabPosition", tabPosition);
 			Files.writeString(file, new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(out));
 		} catch (Exception e) {
 			e.printStackTrace(); // fall back to defaults
