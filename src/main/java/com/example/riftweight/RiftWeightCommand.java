@@ -61,7 +61,7 @@ public final class RiftWeightCommand {
 		HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString())
 				.whenComplete((response, error) -> Minecraft.getInstance().execute(() -> {
 					if (error != null) {
-						source.sendError(Component.literal("Rift-Weight-API nicht erreichbar."));
+						source.sendError(Component.literal("Rift-Weight-API nicht erreichbar: " + error));
 						return;
 					}
 					switch (response.statusCode()) {
