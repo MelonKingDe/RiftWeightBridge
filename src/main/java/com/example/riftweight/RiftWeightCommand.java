@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -21,9 +22,9 @@ import java.time.Duration;
 import java.util.Locale;
 
 /**
- * /riftweight                  -> eigener Rift Weight
- * /riftweight <name>           -> Spieler checken (ausgewähltes Profil)
- * /riftweight <name> <profil>  -> bestimmtes Profil
+ * /riftweight                  -> your own Rift Weight
+ * /riftweight <name>           -> check a player (selected profile)
+ * /riftweight <name> <profile> -> a specific profile
  */
 public final class RiftWeightCommand {
 
@@ -47,7 +48,7 @@ public final class RiftWeightCommand {
 	}
 
 	private static int run(FabricClientCommandSource source, String player, String profile) {
-		source.sendFeedback(lit("Rift Weight für " + player + " wird geladen ...", ChatFormatting.GRAY));
+		source.sendFeedback(lit("Loading Rift Weight for " + player + " ...", ChatFormatting.GRAY));
 
 		String url = RiftWeightMod.API_BASE + "/api/check/" + enc(player)
 				+ (profile != null ? "?profile=" + enc(profile) : "");
@@ -57,20 +58,20 @@ public final class RiftWeightCommand {
 				.GET()
 				.build();
 
-		// Asynchron, damit das Spiel nicht hängt. Chat-Ausgabe zurück auf den Client-Thread.
+		// Async so the game never freezes; chat output must go back to the client thread.
 		HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString())
 				.whenComplete((response, error) -> Minecraft.getInstance().execute(() -> {
 					if (error != null) {
-						source.sendError(Component.literal("Rift-Weight-API nicht erreichbar: " + error));
+						source.sendError(Component.literal("Could not reach the Rift Weight API: " + error));
 						return;
 					}
 					switch (response.statusCode()) {
 						case 200 -> show(source, response.body());
-						case 404 -> source.sendError(Component.literal("Keine Daten für " + player
-								+ (profile != null ? " (Profil " + profile + ")" : "") + " gefunden."));
-						case 429 -> source.sendError(Component.literal("Zu viele Anfragen, bitte kurz warten."));
+						case 404 -> source.sendError(Component.literal("No data found for " + player
+								+ (profile != null ? " (profile " + profile + ")" : "") + "."));
+						case 429 -> source.sendError(Component.literal("Too many requests, please wait a moment."));
 						default -> source.sendError(Component.literal(
-								"Fehler von der API (HTTP " + response.statusCode() + ")."));
+								"API error (HTTP " + response.statusCode() + ")."));
 					}
 				}));
 		return 1;
@@ -86,13 +87,13 @@ public final class RiftWeightCommand {
 			source.sendFeedback(lit(name, ChatFormatting.WHITE, ChatFormatting.BOLD)
 					.append(lit(" (" + profile + ")", ChatFormatting.GRAY)));
 
-			var line = lit("Rift Weight: ", ChatFormatting.LIGHT_PURPLE)
+			MutableComponent line = lit("Rift Weight: ", ChatFormatting.LIGHT_PURPLE)
 					.append(lit(fmt(weight), ChatFormatting.WHITE));
 			JsonElement rank = o.get("rank");
 			JsonElement total = o.get("total");
 			if (rank != null && !rank.isJsonNull() && total != null && !total.isJsonNull()) {
-				line.append(lit("  #" + rank.getAsInt() + " von " + total.getAsInt(), ChatFormatting.GOLD));
-				// Nametag sofort aktualisieren
+				line.append(lit("  #" + rank.getAsInt() + " of " + total.getAsInt(), ChatFormatting.GOLD));
+				// Update the nametag/chat tag right away
 				RankCache.put(RankCache.parseUuid(o.get("uuid").getAsString()), rank.getAsInt(), total.getAsInt());
 			}
 			source.sendFeedback(line);
@@ -106,11 +107,11 @@ public final class RiftWeightCommand {
 						.append(lit("  (" + b.get("percent").getAsDouble() + "%)", ChatFormatting.DARK_GRAY)));
 			}
 		} catch (Exception ex) {
-			source.sendError(Component.literal("Antwort der API konnte nicht gelesen werden."));
+			source.sendError(Component.literal("Could not read the API response."));
 		}
 	}
 
-	private static net.minecraft.network.chat.MutableComponent lit(String s, ChatFormatting... formats) {
+	private static MutableComponent lit(String s, ChatFormatting... formats) {
 		return Component.literal(s).withStyle(formats);
 	}
 

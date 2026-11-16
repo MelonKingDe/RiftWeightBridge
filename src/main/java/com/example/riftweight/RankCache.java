@@ -22,30 +22,30 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * Cache für Ränge. Der Nametag-Mixin ruft {@link #get(UUID)} pro Frame auf (billiger Hash-Lookup).
- * Unbekannte/abgelaufene UUIDs werden gesammelt und sekündlich in EINEM Batch-Request
- * (GET /api/players?uuids=a,b,c) geholt. Nie auf dem Render-Thread blockieren!
+ * Rank cache. The nametag mixin and the chat hook call {@link #get(UUID)} (cheap hash lookup).
+ * Unknown/expired UUIDs are collected and fetched once per second in ONE batch request
+ * (GET /api/players?uuids=a,b,c). Never block the render thread!
  */
 public final class RankCache {
 
-	/** rank <= 0 bedeutet: nicht in der Rangliste. */
+	/** rank <= 0 means: not on the leaderboard. */
 	public record Entry(int rank, int total, long expiresAt) {
 		public boolean ranked() {
 			return rank > 0;
 		}
 	}
 
-	private static final long TTL_MS = 5 * 60_000L;          // bekannter Rang: 5 Min gültig
-	private static final long NOT_FOUND_TTL_MS = 2 * 60_000L; // nicht gelistet: nach 2 Min nochmal fragen
-	private static final long ERROR_RETRY_MS = 30_000L;       // API-Fehler: nach 30 s nochmal
-	private static final int MAX_BATCH = 50;                  // muss zu API_MAX_BATCH im Bot passen
+	private static final long TTL_MS = 5 * 60_000L;          // known rank: valid for 5 min
+	private static final long NOT_FOUND_TTL_MS = 2 * 60_000L; // not listed: ask again after 2 min
+	private static final long ERROR_RETRY_MS = 30_000L;       // API error: retry after 30 s
+	private static final int MAX_BATCH = 50;                  // must match API_MAX_BATCH in the bot
 
 	private static final HttpClient HTTP = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();
 
 	private static final Map<UUID, Entry> CACHE = new ConcurrentHashMap<>();
-	private static final Set<UUID> IN_FLIGHT = ConcurrentHashMap.newKeySet(); // wartet oder wird gerade geladen
+	private static final Set<UUID> IN_FLIGHT = ConcurrentHashMap.newKeySet(); // queued or currently loading
 	private static final Queue<UUID> PENDING = new ConcurrentLinkedQueue<>();
 
 	private RankCache() {}
@@ -59,18 +59,18 @@ public final class RankCache {
 		scheduler.scheduleWithFixedDelay(RankCache::flushSafe, 1, 1, TimeUnit.SECONDS);
 	}
 
-	/** Liefert den (evtl. leicht veralteten) Eintrag oder null, und stößt bei Bedarf ein Nachladen an. */
+	/** Returns the (possibly slightly stale) entry or null, and triggers a reload if needed. */
 	public static Entry get(UUID id) {
 		Entry e = CACHE.get(id);
 		if ((e == null || e.expiresAt() < System.currentTimeMillis())
-				&& id.version() == 4 // echte Spieler-Accounts; filtert NPCs (z.B. Hypixel v2) raus
+				&& id.version() == 4 // real player accounts only; filters NPCs (e.g. Hypixel v2)
 				&& IN_FLIGHT.add(id)) {
 			PENDING.add(id);
 		}
 		return e;
 	}
 
-	/** Vom /riftweight-Befehl genutzt, damit der Nametag sofort den frischen Rang zeigt. */
+	/** Used by /riftweight so the tag shows the fresh rank immediately. */
 	public static void put(UUID id, int rank, int total) {
 		CACHE.put(id, new Entry(rank, total, System.currentTimeMillis() + TTL_MS));
 	}
@@ -83,7 +83,7 @@ public final class RankCache {
 	private static void flushSafe() {
 		try {
 			flush();
-		} catch (Throwable t) { // sonst würde der Scheduler weitere Läufe einstellen
+		} catch (Throwable t) { // otherwise the scheduler would stop running
 			t.printStackTrace();
 		}
 	}
@@ -113,7 +113,7 @@ public final class RankCache {
 				for (UUID id : batch) {
 					Entry old = CACHE.get(id);
 					CACHE.put(id, old != null
-							? new Entry(old.rank(), old.total(), now + ERROR_RETRY_MS) // alten Rang behalten
+							? new Entry(old.rank(), old.total(), now + ERROR_RETRY_MS) // keep the old rank
 							: new Entry(0, 0, now + ERROR_RETRY_MS));
 				}
 				return;

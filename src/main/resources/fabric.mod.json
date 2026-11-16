@@ -3,7 +3,7 @@
 	"id": "riftweight",
 	"version": "${version}",
 	"name": "Rift Weight",
-	"description": "Zeigt den Rift-Weight-Rang von Spielern im Nametag und bietet /riftweight <name>.",
+	"description": "Shows players' Rift Weight rank in nametags and chat, and adds /riftweight <name>.",
 	"authors": ["du"],
 	"license": "MIT",
 	"environment": "client",
