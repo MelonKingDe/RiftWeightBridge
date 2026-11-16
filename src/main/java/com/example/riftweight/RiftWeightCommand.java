@@ -3,6 +3,7 @@ package com.example.riftweight;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -26,6 +27,7 @@ import java.util.Locale;
  * /riftweight <name>           -> check a player (selected profile)
  * /riftweight <name> <profile> -> a specific profile
  * /riftweight hud              -> toggle the "not in database" HUD
+ * /riftweight hud <x> <y>      -> move the HUD (x < 0 = distance from the right edge)
  */
 public final class RiftWeightCommand {
 
@@ -39,7 +41,13 @@ public final class RiftWeightCommand {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
 				dispatcher.register(ClientCommands.literal("riftweight")
 						.executes(ctx -> run(ctx.getSource(), Minecraft.getInstance().getUser().getName(), null))
-						.then(ClientCommands.literal("hud").executes(ctx -> toggleHud(ctx.getSource())))
+						.then(ClientCommands.literal("hud")
+								.executes(ctx -> toggleHud(ctx.getSource()))
+								.then(ClientCommands.argument("x", IntegerArgumentType.integer())
+										.then(ClientCommands.argument("y", IntegerArgumentType.integer(0))
+												.executes(ctx -> moveHud(ctx.getSource(),
+														IntegerArgumentType.getInteger(ctx, "x"),
+														IntegerArgumentType.getInteger(ctx, "y"))))))
 						.then(ClientCommands.argument("player", StringArgumentType.word())
 								.executes(ctx -> run(ctx.getSource(),
 										StringArgumentType.getString(ctx, "player"), null))
@@ -47,6 +55,17 @@ public final class RiftWeightCommand {
 										.executes(ctx -> run(ctx.getSource(),
 												StringArgumentType.getString(ctx, "player"),
 												StringArgumentType.getString(ctx, "profile")))))));
+	}
+
+	/** /riftweight hud <x> <y>: moves the HUD immediately and saves the position. */
+	private static int moveHud(FabricClientCommandSource source, int x, int y) {
+		ModConfig.hud = true;
+		ModConfig.hudX = x;
+		ModConfig.hudY = y;
+		ModConfig.save();
+		source.sendFeedback(lit("HUD moved to x=" + x + ", y=" + y
+				+ (x < 0 ? " (x counts from the right edge)" : ""), ChatFormatting.GRAY));
+		return 1;
 	}
 
 	/** /riftweight hud: shows/hides the list of lobby players who are not in the database. */
