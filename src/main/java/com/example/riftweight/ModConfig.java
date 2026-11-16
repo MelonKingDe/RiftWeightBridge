@@ -17,8 +17,8 @@ import java.nio.file.Path;
  *   format   - tag template, placeholders {icon} and {rank}
  *   nametag  - show the tag above players' heads
  *   chat     - show the tag in chat messages
- *   autoScan - periodically check a random lobby player who has no rank yet (fills the database)
- *   scanIntervalSeconds - seconds between auto scans (minimum 5)
+ *   tablist  - show a small symbol in the tab list for players who are in the database
+ *   tabIcon  - the symbol used in the tab list
  */
 public final class ModConfig {
 
@@ -26,8 +26,8 @@ public final class ModConfig {
 	public static String format = "[{icon} {rank}]";
 	public static boolean nametag = true;
 	public static boolean chat = true;
-	public static boolean autoScan = true;
-	public static int scanIntervalSeconds = 10;
+	public static boolean tablist = true;
+	public static String tabIcon = "\u0444";
 
 	private ModConfig() {}
 
@@ -40,22 +40,26 @@ public final class ModConfig {
 				if (o.has("format")) format = o.get("format").getAsString();
 				if (o.has("nametag")) nametag = o.get("nametag").getAsBoolean();
 				if (o.has("chat")) chat = o.get("chat").getAsBoolean();
-				if (o.has("autoScan")) autoScan = o.get("autoScan").getAsBoolean();
-				if (o.has("scanIntervalSeconds")) scanIntervalSeconds = o.get("scanIntervalSeconds").getAsInt();
+				if (o.has("tablist")) tablist = o.get("tablist").getAsBoolean();
+				if (o.has("tabIcon")) tabIcon = o.get("tabIcon").getAsString();
 			}
-			scanIntervalSeconds = Math.max(5, scanIntervalSeconds);
 			// Write back so missing keys are added and the user can see all options
 			JsonObject out = new JsonObject();
 			out.addProperty("icon", icon);
 			out.addProperty("format", format);
 			out.addProperty("nametag", nametag);
 			out.addProperty("chat", chat);
-			out.addProperty("autoScan", autoScan);
-			out.addProperty("scanIntervalSeconds", scanIntervalSeconds);
+			out.addProperty("tablist", tablist);
+			out.addProperty("tabIcon", tabIcon);
 			Files.writeString(file, new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(out));
 		} catch (Exception e) {
 			e.printStackTrace(); // fall back to defaults
 		}
+	}
+
+	/** Small symbol for the tab list, e.g. "ф " (with trailing space). */
+	public static MutableComponent tabSymbol() {
+		return Component.literal(tabIcon + " ").withStyle(ChatFormatting.LIGHT_PURPLE);
 	}
 
 	/** Builds the tag, e.g. "[ф 12]". Top 3 are gold, everything else light purple. */

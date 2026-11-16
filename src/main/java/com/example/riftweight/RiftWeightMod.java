@@ -13,6 +13,5 @@ public class RiftWeightMod implements ClientModInitializer {
 		RankCache.start();
 		RiftWeightCommand.register();
 		ChatRanks.register();
-		AutoScanner.register();
 	}
 }
