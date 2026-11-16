@@ -16,9 +16,23 @@ public final class ComponentUtil {
 	/** Leading SkyBlock level such as "[481] ". */
 	private static final Pattern LEVEL = Pattern.compile("^\\s*\\[\\d+\\]\\s*");
 
+	/** "[481] Name ..." (optional rank brackets like "[MVP+]" in between) -> captures the name. */
+	private static final Pattern LEVEL_AND_NAME =
+			Pattern.compile("^\\s*\\[\\d+\\]\\s*(?:\\[[^\\]]*\\]\\s*)*([A-Za-z0-9_]{3,16})(?![A-Za-z0-9_])");
+
 	private record Segment(Style style, String text) {}
 
 	private ComponentUtil() {}
+
+	/**
+	 * For SkyBlock-style entries "[481] MelonKingDe ..." returns the player name after the level,
+	 * otherwise null. (On Hypixel SkyBlock the tab list shows fake entries with a different UUID,
+	 * so the real player has to be found by name.)
+	 */
+	public static String nameAfterLevel(Component component) {
+		Matcher m = LEVEL_AND_NAME.matcher(component.getString());
+		return m.find() ? m.group(1) : null;
+	}
 
 	/**
 	 * Inserts {@code insertion} right after a leading "[level] " (or at the very start if there is none).
