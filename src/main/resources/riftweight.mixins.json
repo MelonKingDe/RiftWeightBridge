@@ -4,7 +4,7 @@
 	"package": "com.example.riftweight.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [],
-	"client": ["EntityRendererMixin", "PlayerTabOverlayMixin"],
+	"client": ["EntityRendererMixin"],
 	"injectors": {
 		"defaultRequire": 1
 	}

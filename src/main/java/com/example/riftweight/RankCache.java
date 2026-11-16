@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  */
 public final class RankCache {
 
-	/** rank <= 0 means: not on the leaderboard. */
+	/** rank > 0: ranked, 0: not in the database, -1: unknown (API error, will be retried). */
 	public record Entry(int rank, int total, long expiresAt) {
 		public boolean ranked() {
 			return rank > 0;
@@ -114,7 +114,7 @@ public final class RankCache {
 					Entry old = CACHE.get(id);
 					CACHE.put(id, old != null
 							? new Entry(old.rank(), old.total(), now + ERROR_RETRY_MS) // keep the old rank
-							: new Entry(0, 0, now + ERROR_RETRY_MS));
+							: new Entry(-1, 0, now + ERROR_RETRY_MS));
 				}
 				return;
 			}
@@ -130,7 +130,7 @@ public final class RankCache {
 			}
 		} catch (Exception e) {
 			for (UUID id : batch) {
-				CACHE.putIfAbsent(id, new Entry(0, 0, now + ERROR_RETRY_MS));
+				CACHE.putIfAbsent(id, new Entry(-1, 0, now + ERROR_RETRY_MS));
 			}
 		} finally {
 			IN_FLIGHT.removeAll(batch);

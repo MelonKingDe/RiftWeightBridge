@@ -17,9 +17,9 @@ import java.nio.file.Path;
  *   format   - tag template, placeholders {icon} and {rank}
  *   nametag  - show the tag above players' heads
  *   chat     - show the tag in chat messages
- *   tablist  - show a small symbol in the tab list for players who are in the database
- *   tabIcon  - the symbol used in the tab list
- *   tabPosition - "start" (far left, before the level) or "afterLevel" (between level and name)
+ *   hud      - show the "not in database" player list (toggle in game with /riftweight hud)
+ *   hudX     - HUD x position in GUI pixels; negative = distance from the right edge
+ *   hudY     - HUD y position in GUI pixels
  */
 public final class ModConfig {
 
@@ -27,43 +27,49 @@ public final class ModConfig {
 	public static String format = "[{icon} {rank}]";
 	public static boolean nametag = true;
 	public static boolean chat = true;
-	public static boolean tablist = true;
-	public static String tabIcon = "\u0444";
-	public static String tabPosition = "start";
+	public static boolean hud = true;
+	public static int hudX = -4;
+	public static int hudY = 70;
 
 	private ModConfig() {}
 
+	private static Path file() {
+		return FabricLoader.getInstance().getConfigDir().resolve("riftweight.json");
+	}
+
 	public static void load() {
-		Path file = FabricLoader.getInstance().getConfigDir().resolve("riftweight.json");
 		try {
+			Path file = file();
 			if (Files.exists(file)) {
 				JsonObject o = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
 				if (o.has("icon")) icon = o.get("icon").getAsString();
 				if (o.has("format")) format = o.get("format").getAsString();
 				if (o.has("nametag")) nametag = o.get("nametag").getAsBoolean();
 				if (o.has("chat")) chat = o.get("chat").getAsBoolean();
-				if (o.has("tablist")) tablist = o.get("tablist").getAsBoolean();
-				if (o.has("tabIcon")) tabIcon = o.get("tabIcon").getAsString();
-				if (o.has("tabPosition")) tabPosition = o.get("tabPosition").getAsString();
+				if (o.has("hud")) hud = o.get("hud").getAsBoolean();
+				if (o.has("hudX")) hudX = o.get("hudX").getAsInt();
+				if (o.has("hudY")) hudY = o.get("hudY").getAsInt();
 			}
-			// Write back so missing keys are added and the user can see all options
+		} catch (Exception e) {
+			e.printStackTrace(); // fall back to defaults
+		}
+		save(); // adds missing keys, drops removed ones
+	}
+
+	public static void save() {
+		try {
 			JsonObject out = new JsonObject();
 			out.addProperty("icon", icon);
 			out.addProperty("format", format);
 			out.addProperty("nametag", nametag);
 			out.addProperty("chat", chat);
-			out.addProperty("tablist", tablist);
-			out.addProperty("tabIcon", tabIcon);
-			out.addProperty("tabPosition", tabPosition);
-			Files.writeString(file, new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(out));
+			out.addProperty("hud", hud);
+			out.addProperty("hudX", hudX);
+			out.addProperty("hudY", hudY);
+			Files.writeString(file(), new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(out));
 		} catch (Exception e) {
-			e.printStackTrace(); // fall back to defaults
+			e.printStackTrace();
 		}
-	}
-
-	/** Small symbol for the tab list, e.g. "ф " (with trailing space). */
-	public static MutableComponent tabSymbol() {
-		return Component.literal(tabIcon + " ").withStyle(ChatFormatting.LIGHT_PURPLE);
 	}
 
 	/** Builds the tag, e.g. "[ф 12]". Top 3 are gold, everything else light purple. */
