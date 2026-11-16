@@ -20,6 +20,8 @@ import java.nio.file.Path;
  *   hud      - show the "not in database" player list (toggle in game with /riftweight hud)
  *   hudX     - HUD x position in GUI pixels; negative = distance from the right edge
  *   hudY     - HUD y position in GUI pixels
+ *   autoCheck - check one random player from the HUD list every few minutes (toggle: /riftweight auto)
+ *   autoCheckMinutes - minutes between auto checks (minimum 1)
  */
 public final class ModConfig {
 
@@ -30,6 +32,8 @@ public final class ModConfig {
 	public static boolean hud = true;
 	public static int hudX = -4;
 	public static int hudY = 70;
+	public static boolean autoCheck = true;
+	public static int autoCheckMinutes = 3;
 
 	private ModConfig() {}
 
@@ -49,10 +53,13 @@ public final class ModConfig {
 				if (o.has("hud")) hud = o.get("hud").getAsBoolean();
 				if (o.has("hudX")) hudX = o.get("hudX").getAsInt();
 				if (o.has("hudY")) hudY = o.get("hudY").getAsInt();
+				if (o.has("autoCheck")) autoCheck = o.get("autoCheck").getAsBoolean();
+				if (o.has("autoCheckMinutes")) autoCheckMinutes = o.get("autoCheckMinutes").getAsInt();
 			}
 		} catch (Exception e) {
 			e.printStackTrace(); // fall back to defaults
 		}
+		autoCheckMinutes = Math.max(1, autoCheckMinutes);
 		save(); // adds missing keys, drops removed ones
 	}
 
@@ -66,6 +73,8 @@ public final class ModConfig {
 			out.addProperty("hud", hud);
 			out.addProperty("hudX", hudX);
 			out.addProperty("hudY", hudY);
+			out.addProperty("autoCheck", autoCheck);
+			out.addProperty("autoCheckMinutes", autoCheckMinutes);
 			Files.writeString(file(), new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(out));
 		} catch (Exception e) {
 			e.printStackTrace();

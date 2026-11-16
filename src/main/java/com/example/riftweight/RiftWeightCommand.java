@@ -28,6 +28,7 @@ import java.util.Locale;
  * /riftweight <name> <profile> -> a specific profile
  * /riftweight hud              -> toggle the "not in database" HUD
  * /riftweight hud <x> <y>      -> move the HUD (x < 0 = distance from the right edge)
+ * /riftweight auto             -> toggle the automatic check (1 player from the HUD list every few minutes)
  */
 public final class RiftWeightCommand {
 
@@ -41,6 +42,7 @@ public final class RiftWeightCommand {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
 				dispatcher.register(ClientCommands.literal("riftweight")
 						.executes(ctx -> run(ctx.getSource(), Minecraft.getInstance().getUser().getName(), null))
+						.then(ClientCommands.literal("auto").executes(ctx -> toggleAuto(ctx.getSource())))
 						.then(ClientCommands.literal("hud")
 								.executes(ctx -> toggleHud(ctx.getSource()))
 								.then(ClientCommands.argument("x", IntegerArgumentType.integer())
@@ -55,6 +57,15 @@ public final class RiftWeightCommand {
 										.executes(ctx -> run(ctx.getSource(),
 												StringArgumentType.getString(ctx, "player"),
 												StringArgumentType.getString(ctx, "profile")))))));
+	}
+
+	/** /riftweight auto: turns the automatic check of one HUD-list player every few minutes on/off. */
+	private static int toggleAuto(FabricClientCommandSource source) {
+		ModConfig.autoCheck = !ModConfig.autoCheck;
+		ModConfig.save();
+		source.sendFeedback(lit("Auto check (1 player every " + ModConfig.autoCheckMinutes + " min): "
+				+ (ModConfig.autoCheck ? "ON" : "OFF"), ChatFormatting.GRAY));
+		return 1;
 	}
 
 	/** /riftweight hud <x> <y>: moves the HUD immediately and saves the position. */
