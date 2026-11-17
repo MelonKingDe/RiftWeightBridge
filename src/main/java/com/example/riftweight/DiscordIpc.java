@@ -11,7 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -42,6 +44,7 @@ public final class DiscordIpc implements AutoCloseable {
 
 	/** Connects to the first running Discord client. Returns null if Discord is not running / refuses. */
 	public static DiscordIpc connect(String clientId) {
+		Set<String> errors = new LinkedHashSet<>();
 		for (int i = 0; i < 10; i++) {
 			for (String path : candidatePaths(i)) {
 				Pipe pipe = null;
@@ -53,11 +56,14 @@ public final class DiscordIpc implements AutoCloseable {
 					lastError = null;
 					return ipc;
 				} catch (Exception e) {
-					lastError = e.toString();
+					// same message for all 10 pipe numbers -> keep only distinct ones
+					errors.add(e.toString().replaceAll("discord-ipc-\\d", "discord-ipc-N"));
 					if (pipe != null) pipe.close();
 				}
 			}
 		}
+		lastError = errors.isEmpty() ? "no Discord pipe found (is the Discord desktop app running?)"
+				: String.join(" | ", errors);
 		return null;
 	}
 

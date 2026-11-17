@@ -28,6 +28,7 @@ import java.util.Locale;
  * /riftweight <name> <profile> -> a specific profile
  * /riftweight hud              -> toggle the "not in database" HUD
  * /riftweight hud <x> <y>      -> move the HUD (x < 0 = distance from the right edge)
+ * /riftweight discord          -> show the state of the Discord Rich Presence
  * /riftweight auto             -> toggle the automatic check (1 player from the HUD list every few minutes)
  */
 public final class RiftWeightCommand {
@@ -42,6 +43,7 @@ public final class RiftWeightCommand {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
 				dispatcher.register(ClientCommands.literal("riftweight")
 						.executes(ctx -> run(ctx.getSource(), Minecraft.getInstance().getUser().getName(), null))
+						.then(ClientCommands.literal("discord").executes(ctx -> discordStatus(ctx.getSource())))
 						.then(ClientCommands.literal("auto").executes(ctx -> toggleAuto(ctx.getSource())))
 						.then(ClientCommands.literal("hud")
 								.executes(ctx -> toggleHud(ctx.getSource()))
@@ -57,6 +59,15 @@ public final class RiftWeightCommand {
 										.executes(ctx -> run(ctx.getSource(),
 												StringArgumentType.getString(ctx, "player"),
 												StringArgumentType.getString(ctx, "profile")))))));
+	}
+
+	/** /riftweight discord: shows the state of the Discord Rich Presence and what is wrong, if anything. */
+	private static int discordStatus(FabricClientCommandSource source) {
+		source.sendFeedback(lit("Discord Rich Presence", ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+		for (String line : DiscordPresence.statusLines()) {
+			source.sendFeedback(lit(" - " + line, line.startsWith("PROBLEM") ? ChatFormatting.RED : ChatFormatting.GRAY));
+		}
+		return 1;
 	}
 
 	/** /riftweight auto: turns the automatic check of one HUD-list player every few minutes on/off. */
