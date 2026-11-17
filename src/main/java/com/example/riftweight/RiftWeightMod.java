@@ -11,7 +11,7 @@ public class RiftWeightMod implements ClientModInitializer {
 	 * Application ID of your Discord application (discord.com/developers). The NAME of that application
 	 * is what Discord shows as the activity ("Playing /riftweight"). Leave as is to disable Rich Presence.
 	 */
-	public static final String DISCORD_APP_ID = "YOUR_APPLICATION_ID";
+	public static final String DISCORD_APP_ID = "1572061969480024094";
 
 	@Override
 	public void onInitializeClient() {
