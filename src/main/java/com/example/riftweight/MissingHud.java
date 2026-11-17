@@ -58,7 +58,7 @@ public final class MissingHud {
 				lines.add(new Line("+" + (missing.size() - MAX_LINES) + " more", GRAY));
 			}
 		}
-		if (loading > 0) lines.add(new Line("checking " + loading + " ...", GRAY));
+		if (loading > 0) lines.add(new Line("loading ranks ...", GRAY));
 		if (errors > 0) lines.add(new Line("API unreachable", RED));
 
 		Font font = mc.font;

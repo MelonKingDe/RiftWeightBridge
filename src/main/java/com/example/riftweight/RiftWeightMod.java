@@ -16,7 +16,7 @@ public class RiftWeightMod implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		ModConfig.load();
-		RankCache.start();
+		RankBoard.start();
 		RiftWeightCommand.register();
 		ChatRanks.register();
 		MissingHud.register();

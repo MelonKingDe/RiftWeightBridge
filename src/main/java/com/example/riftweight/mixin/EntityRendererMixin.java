@@ -1,7 +1,7 @@
 package com.example.riftweight.mixin;
 
 import com.example.riftweight.ModConfig;
-import com.example.riftweight.RankCache;
+import com.example.riftweight.RankBoard;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.network.chat.Component;
@@ -24,16 +24,14 @@ public abstract class EntityRendererMixin {
 
 	@Inject(method = "extractRenderState", at = @At("TAIL"))
 	private void riftweight$appendRank(Entity entity, EntityRenderState state, float partialTick, CallbackInfo ci) {
-		if (!(entity instanceof Player player)) return;
-		RankCache.rememberName(player.getName().getString(), player.getUUID()); // lets the chat find this player
-		if (!ModConfig.nametag || state.nameTag == null) return;
+		if (!ModConfig.nametag || state.nameTag == null || !(entity instanceof Player player)) return;
 
-		RankCache.Entry entry = RankCache.get(player.getUUID());
-		if (entry == null || !entry.ranked()) return;
+		int rank = RankBoard.rankOf(player.getName().getString());
+		if (rank <= 0) return; // not in the database
 
 		state.nameTag = Component.empty()
 				.append(state.nameTag)
 				.append(Component.literal(" "))
-				.append(ModConfig.tag(entry.rank()));
+				.append(ModConfig.tag(rank));
 	}
 }

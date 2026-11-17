@@ -67,8 +67,10 @@ public final class RiftWeightCommand {
 	/** /riftweight chatdebug: what the chat tag found out about the last senders (for troubleshooting). */
 	private static int chatDebug(FabricClientCommandSource source) {
 		source.sendFeedback(lit("Last chat senders", ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+		source.sendFeedback(lit(" game messages seen: " + ChatRanks.messagesSeen() + ", rank list loaded: "
+				+ RankBoard.isLoaded() + " (" + RankBoard.size() + " players)", ChatFormatting.GRAY));
 		List<String> lines = ChatRanks.debugLines();
-		if (lines.isEmpty()) source.sendFeedback(lit(" (none yet - wait for a chat message)", ChatFormatting.GRAY));
+		if (lines.isEmpty()) source.sendFeedback(lit(" (none yet - wait for a chat message with a colon)", ChatFormatting.GRAY));
 		for (String line : lines) source.sendFeedback(lit(" - " + line, ChatFormatting.GRAY));
 		return 1;
 	}
@@ -157,7 +159,7 @@ public final class RiftWeightCommand {
 			if (rank != null && !rank.isJsonNull() && total != null && !total.isJsonNull()) {
 				line.append(lit("  #" + rank.getAsInt() + " of " + total.getAsInt(), ChatFormatting.GOLD));
 				// Update the nametag/chat tag right away
-				RankCache.put(RankCache.parseUuid(o.get("uuid").getAsString()), rank.getAsInt(), total.getAsInt());
+				RankBoard.put(name, rank.getAsInt(), total.getAsInt());
 			}
 			source.sendFeedback(line);
 

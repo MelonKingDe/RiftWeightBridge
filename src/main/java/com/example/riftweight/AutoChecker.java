@@ -99,7 +99,7 @@ public final class AutoChecker {
 						JsonElement rank = o.get("rank");
 						JsonElement total = o.get("total");
 						if (rank != null && !rank.isJsonNull() && total != null && !total.isJsonNull()) {
-							RankCache.put(player.id(), rank.getAsInt(), total.getAsInt()); // leaves the HUD list
+							RankBoard.put(player.name(), rank.getAsInt(), total.getAsInt()); // leaves the HUD list
 						} else {
 							COOLDOWN.put(player.id(), now + ERROR_COOLDOWN_MS);
 						}
