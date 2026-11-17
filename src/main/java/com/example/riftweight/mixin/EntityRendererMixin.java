@@ -24,7 +24,9 @@ public abstract class EntityRendererMixin {
 
 	@Inject(method = "extractRenderState", at = @At("TAIL"))
 	private void riftweight$appendRank(Entity entity, EntityRenderState state, float partialTick, CallbackInfo ci) {
-		if (!ModConfig.nametag || state.nameTag == null || !(entity instanceof Player player)) return;
+		if (!(entity instanceof Player player)) return;
+		RankCache.rememberName(player.getName().getString(), player.getUUID()); // lets the chat find this player
+		if (!ModConfig.nametag || state.nameTag == null) return;
 
 		RankCache.Entry entry = RankCache.get(player.getUUID());
 		if (entry == null || !entry.ranked()) return;

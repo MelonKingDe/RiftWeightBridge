@@ -7,7 +7,9 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.world.entity.player.Player;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -70,13 +72,18 @@ public final class ChatRanks {
 		Matcher m = NAME_AT_END.matcher(core);
 		if (!m.find()) return message;
 
-		ClientPacketListener connection = Minecraft.getInstance().getConnection();
-		if (connection == null) return message;
-		PlayerInfo info = connection.getPlayerInfo(m.group());
-		if (info == null) return message; // not a player on the tab list
-		UUID id = info.getProfile().id();
-
-		RankCache.Entry entry = RankCache.get(id);
+		String name = m.group();
+		Resolved who = resolve(name);
+		RankCache.Entry entry;
+		if (who.id() != null) {
+			entry = RankCache.get(who.id());
+		} else {
+			// Unknown sender: ask the API by name, but only if this really looks like "... ] Name:" or "Name:"
+			String before = core.substring(0, m.start()).stripTrailing();
+			boolean looksLikeSender = before.isEmpty() || before.endsWith("]") || before.endsWith(">");
+			entry = looksLikeSender ? RankCache.getByName(name) : null;
+		}
+		debug(name, who, entry);
 		if (entry == null || !entry.ranked()) return message;
 
 		// Rebuild the message with the tag inserted before ": "
@@ -98,5 +105,54 @@ public final class ChatRanks {
 			pos = end;
 		}
 		return inserted ? out : message;
+	}
+
+	// ---------------------------------------------------------------- finding the sender
+
+	private record Resolved(UUID id, String via) {}
+
+	/** Name -> UUID: players we have seen, players nearby, the tab list. Null id = unknown. */
+	private static Resolved resolve(String name) {
+		UUID id = RankCache.uuidForName(name);
+		if (id != null) return new Resolved(id, "seen before");
+
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level != null) {
+			for (Player p : mc.level.players()) {
+				String playerName = p.getName().getString();
+				if (playerName.equalsIgnoreCase(name)) {
+					RankCache.rememberName(playerName, p.getUUID());
+					return new Resolved(p.getUUID(), "player nearby");
+				}
+			}
+		}
+		ClientPacketListener connection = mc.getConnection();
+		if (connection != null) {
+			PlayerInfo info = connection.getPlayerInfo(name);
+			if (info != null) {
+				id = info.getProfile().id();
+				RankCache.rememberName(name, id);
+				return new Resolved(id, "tab list");
+			}
+		}
+		return new Resolved(null, "unknown, asking API by name");
+	}
+
+	// ---------------------------------------------------------------- /riftweight chatdebug
+
+	private static final ArrayDeque<String> DEBUG = new ArrayDeque<>();
+
+	private static synchronized void debug(String name, Resolved who, RankCache.Entry entry) {
+		String state = entry == null ? "no entry yet (loading)"
+				: entry.ranked() ? "rank #" + entry.rank()
+				: entry.rank() == 0 ? "not in database" : "API error";
+		String id = who.id() == null ? "-" : who.id().toString().substring(0, 8);
+		DEBUG.addLast(name + " | uuid " + id + " (" + who.via() + ") | " + state);
+		while (DEBUG.size() > 10) DEBUG.removeFirst();
+	}
+
+	/** The last chat senders the mod looked at and what it found out about them. */
+	public static synchronized List<String> debugLines() {
+		return new ArrayList<>(DEBUG);
 	}
 }

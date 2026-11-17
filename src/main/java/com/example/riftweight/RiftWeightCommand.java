@@ -20,6 +20,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -28,6 +29,7 @@ import java.util.Locale;
  * /riftweight <name> <profile> -> a specific profile
  * /riftweight hud              -> toggle the "not in database" HUD
  * /riftweight hud <x> <y>      -> move the HUD (x < 0 = distance from the right edge)
+ * /riftweight chatdebug         -> show how the chat tag found the last senders
  * /riftweight discord          -> show the state of the Discord Rich Presence
  * /riftweight auto             -> toggle the automatic check (1 player from the HUD list every few minutes)
  */
@@ -43,6 +45,7 @@ public final class RiftWeightCommand {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
 				dispatcher.register(ClientCommands.literal("riftweight")
 						.executes(ctx -> run(ctx.getSource(), Minecraft.getInstance().getUser().getName(), null))
+						.then(ClientCommands.literal("chatdebug").executes(ctx -> chatDebug(ctx.getSource())))
 						.then(ClientCommands.literal("discord").executes(ctx -> discordStatus(ctx.getSource())))
 						.then(ClientCommands.literal("auto").executes(ctx -> toggleAuto(ctx.getSource())))
 						.then(ClientCommands.literal("hud")
@@ -59,6 +62,15 @@ public final class RiftWeightCommand {
 										.executes(ctx -> run(ctx.getSource(),
 												StringArgumentType.getString(ctx, "player"),
 												StringArgumentType.getString(ctx, "profile")))))));
+	}
+
+	/** /riftweight chatdebug: what the chat tag found out about the last senders (for troubleshooting). */
+	private static int chatDebug(FabricClientCommandSource source) {
+		source.sendFeedback(lit("Last chat senders", ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+		List<String> lines = ChatRanks.debugLines();
+		if (lines.isEmpty()) source.sendFeedback(lit(" (none yet - wait for a chat message)", ChatFormatting.GRAY));
+		for (String line : lines) source.sendFeedback(lit(" - " + line, ChatFormatting.GRAY));
+		return 1;
 	}
 
 	/** /riftweight discord: shows the state of the Discord Rich Presence and what is wrong, if anything. */

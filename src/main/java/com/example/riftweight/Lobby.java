@@ -37,6 +37,7 @@ public final class Lobby {
 			// real accounts only: skips NPCs and the fake tab entries of Hypixel
 			if (id == null || name == null || id.version() != 4 || !NAME.matcher(name).matches()) continue;
 
+			RankCache.rememberName(name, id);
 			RankCache.Entry entry = RankCache.get(id); // also queues the lookup
 			if (entry == null) loading++;
 			else if (entry.rank() == 0) missing.add(new Player(id, name));
